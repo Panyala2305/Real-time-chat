@@ -30,7 +30,7 @@ export default function Sidebar({ onSearch }) {
 
       <div className="flex-1 overflow-y-auto">
         {conversations.length === 0 ? (
-          <p className="text-gray-500 text-center p-8">No conversations yet.<br/>Search for users to start chatting!</p>
+          <p className="text-gray-500 text-center p-8">No conversations yet.<br />Search for users to start chatting!</p>
         ) : (
           conversations.map(conv => (
             <div
@@ -61,7 +61,11 @@ export default function Sidebar({ onSearch }) {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm truncate">
-                    {conv.last_message_type === 'image' ? '📷 Image' : (conv.last_message || 'No messages yet')}
+                    {conv.last_message_type === 'image'
+                      ? '📷 Image'
+                      : conv.last_message_type === 'document'
+                        ? '📄 Document'
+                        : (conv.last_message || 'No messages yet')}
                   </span>
                   {conv.unread_count > 0 && (
                     <span className="bg-blue-600 text-white text-xs rounded-full px-2 py-0.5 ml-2">
