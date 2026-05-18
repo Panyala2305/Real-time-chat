@@ -31,12 +31,20 @@ const chatSlice = createSlice({
     },
     addMessage: (state, action) => {
       const { message } = action.payload;
+
+      // FIX: handle both snake_case field names
       const cid = message.conversation_id;
+      if (!cid) return; // safety guard
+
       if (!state.messages[cid]) state.messages[cid] = [];
-      // Avoid duplicates
+
+      // Deduplicate by ID
       const exists = state.messages[cid].some(m => m.id === message.id);
-      if (!exists) state.messages[cid].push(message);
-      // Update last message in conversation list
+      if (!exists) {
+        state.messages[cid].push(message);
+      }
+
+      // Update sidebar conversation preview
       const conv = state.conversations.find(c => c.id === cid);
       if (conv) {
         conv.last_message = message.message_text;

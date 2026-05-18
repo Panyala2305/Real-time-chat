@@ -1,9 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { createContext, useContext, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { io } from 'socket.io-client';
 import { addMessage, setTyping, setUserOnline, setUserOffline } from '../features/chat/chatSlice';
 
-const useSocket = () => {
+const SocketContext = createContext(null);
+
+export const SocketProvider = ({ children }) => {
   const dispatch = useDispatch();
   const { user } = useSelector(state => state.auth);
   const socketRef = useRef(null);
@@ -12,7 +14,8 @@ const useSocket = () => {
     if (!user) return;
 
     const socket = io('http://localhost:5000', {
-      withCredentials: true
+      withCredentials: true,
+      transports: ['websocket', 'polling']
     });
 
     socketRef.current = socket;
@@ -21,16 +24,8 @@ const useSocket = () => {
       console.log('✅ Socket connected:', socket.id);
     });
 
-    socket.on('disconnect', (reason) => {
-      console.log('❌ Socket disconnected:', reason);
-    });
-
-    socket.on('connect_error', (err) => {
-      console.error('❌ Socket connect_error:', err.message);
-    });
-
     socket.on('message:new', (data) => {
-      console.log('📩 message:new received:', data);
+      console.log('📩 message:new:', data);
       dispatch(addMessage(data));
     });
 
@@ -42,12 +37,11 @@ const useSocket = () => {
       dispatch(setTyping({ conversationId, userId, userName: '', isTyping: false }));
     });
 
-    socket.on('user:online', ({ userId }) => {
-      dispatch(setUserOnline(userId));
-    });
+    socket.on('user:online', ({ userId }) => dispatch(setUserOnline(userId)));
+    socket.on('user:offline', ({ userId }) => dispatch(setUserOffline(userId)));
 
-    socket.on('user:offline', ({ userId }) => {
-      dispatch(setUserOffline(userId));
+    socket.on('connect_error', (err) => {
+      console.error('❌ Socket error:', err.message);
     });
 
     return () => {
@@ -56,9 +50,12 @@ const useSocket = () => {
     };
   }, [user, dispatch]);
 
-  // ✅ Return the REF OBJECT, not .current
-  // This way consumers always read the latest socket via socketRef.current
-  return socketRef;
+  return (
+    <SocketContext.Provider value={socketRef}>
+      {children}
+    </SocketContext.Provider>
+  );
 };
 
-export default useSocket;
+// Custom hook — any component calls this to get the socket
+export const useSocket = () => useContext(SocketContext);
